@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'products',
     'user',
     'contacts',
+    'dashboard',
 
 ]
 # CORS_ALLOWED_ORIGINS = [

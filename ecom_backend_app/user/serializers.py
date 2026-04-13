@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate,get_user_model
+ 
+User = get_user_model()
 class RegisterSerializer(serializers.ModelSerializer):
     firstName = serializers.CharField(source='first_name',required=True)
     lastName = serializers.CharField(source='last_name',required=True)
@@ -49,7 +51,9 @@ class RegisterSerializer(serializers.ModelSerializer):
     
 
 
- 
+
+
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -58,12 +62,24 @@ class LoginSerializer(serializers.Serializer):
         email = attrs.get("email")
         password = attrs.get("password")
 
-        user = authenticate(username=email, password=password)
+        try:
+            user_obj = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({
+                "general": "Invalid email or password."
+            })
+
+        user = authenticate(username=user_obj.username, password=password)
 
         if not user:
             raise serializers.ValidationError({
                 "general": "Invalid email or password."
             })
 
+        if not user.is_active:
+            raise serializers.ValidationError({
+                "general": "This account is inactive."
+            })
+
         attrs["user"] = user
-        return attrs   
+        return attrs
