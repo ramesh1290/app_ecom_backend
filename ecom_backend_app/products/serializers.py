@@ -18,9 +18,9 @@ class CategorySerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
-        request = self.context.get("request")
-        if obj.image and request:
-            return request.build_absolute_uri(obj.image.url)
+        
+        if obj.image:
+            return obj.image.url
         return None
 
     def get_product_count(self, obj):
@@ -49,7 +49,7 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
-        request = self.context.get("request")
-        if obj.image and request:
-            return request.build_absolute_uri(obj.image.url)
+        
+        if obj.image:
+            return obj.image.url
         return None
