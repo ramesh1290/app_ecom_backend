@@ -1,7 +1,7 @@
 from rest_framework.generics import ListAPIView
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
-
+from rest_framework import generics
 
 class CategoryListView(ListAPIView):
     queryset = Category.objects.all()
@@ -33,3 +33,9 @@ class ProductListView(ListAPIView):
 
     def get_serializer_context(self):
         return {"request": self.request}
+    
+
+class ProductDetailBySlugView(generics.RetrieveAPIView):
+    queryset = Product.objects.select_related("category").all()
+    serializer_class = ProductSerializer
+    lookup_field = "slug"

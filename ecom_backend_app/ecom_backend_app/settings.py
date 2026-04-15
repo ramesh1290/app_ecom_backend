@@ -20,6 +20,27 @@ cloudinary.config(
     api_key=os.getenv("CLOUDINARY_API_KEY"),
     api_secret=os.getenv("CLOUDINARY_API_SECRET")
 )
+# settings.py
+import os
+
+ESEWA_TEST_MODE = os.getenv("ESEWA_TEST_MODE", "true").lower() == "true"
+ESEWA_PRODUCT_CODE = os.getenv("ESEWA_PRODUCT_CODE", "EPAYTEST")
+ESEWA_SECRET_KEY = os.getenv("ESEWA_SECRET_KEY", "8gBm/:&EnhH.1/q")
+
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://127.0.0.1:8000")
+
+ESEWA_FORM_URL = (
+    "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+    if ESEWA_TEST_MODE
+    else "https://epay.esewa.com.np/api/epay/main/v2/form"
+)
+
+ESEWA_STATUS_CHECK_URL = (
+    "https://rc.esewa.com.np/api/epay/transaction/status/"
+    if ESEWA_TEST_MODE
+    else "https://esewa.com.np/api/epay/transaction/status/"
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -53,6 +74,7 @@ INSTALLED_APPS = [
     'user',
     'contacts',
     'carts',
+    'payments',
     'dashboard',
 
 ]

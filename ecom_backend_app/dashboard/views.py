@@ -1,12 +1,21 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
+from rest_framework import generics
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from products.models import Product, Category
 from contacts.models import Contact
-from rest_framework import generics
-from .serializers import DashboardCategorySerializer, DashboardContactSerializer, DashboardProductSerializer
-from rest_framework.parsers import MultiPartParser, FormParser
+from payments.models import Order
+
+from .serializers import (
+    DashboardCategorySerializer,
+    DashboardContactSerializer,
+    DashboardProductSerializer,
+    DashboardOrderListSerializer,
+    DashboardOrderDetailSerializer,
+)
+
 
 class DashboardSummaryView(APIView):
     permission_classes = [IsAdminUser]
@@ -18,8 +27,13 @@ class DashboardSummaryView(APIView):
         featured_products = Product.objects.filter(featured=True).count()
         low_stock_products = Product.objects.filter(stock__lt=5).count()
 
-        latest_products = Product.objects.select_related("category").order_by("-created_at")
-        latest_contacts = Contact.objects.order_by("-id")
+        total_orders = Order.objects.count()
+        paid_orders = Order.objects.filter(status="PAID").count()
+        pending_orders = Order.objects.filter(status="PENDING").count()
+
+        latest_products = Product.objects.select_related("category").order_by("-created_at")[:5]
+        latest_contacts = Contact.objects.order_by("-id")[:5]
+        latest_orders = Order.objects.select_related("user").order_by("-created_at")[:5]
 
         products_data = [
             {
@@ -45,15 +59,36 @@ class DashboardSummaryView(APIView):
             for contact in latest_contacts
         ]
 
+        orders_data = [
+            {
+                "id": order.id,
+                "customer_name": (
+                    order.user.first_name
+                    if order.user.first_name
+                    else order.user.email
+                ),
+                "customer_email": order.user.email,
+                "total_amount": str(order.total_amount),
+                "status": order.status,
+                "created_at": order.created_at,
+            }
+            for order in latest_orders
+        ]
+
         return Response({
             "total_products": total_products,
             "total_categories": total_categories,
             "total_contacts": total_contacts,
             "featured_products": featured_products,
             "low_stock_products": low_stock_products,
+            "total_orders": total_orders,
+            "paid_orders": paid_orders,
+            "pending_orders": pending_orders,
             "latest_products": products_data,
             "latest_contacts": contacts_data,
+            "latest_orders": orders_data,
         })
+
 
 class DashboardProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.select_related("category").order_by("-created_at")
@@ -73,7 +108,8 @@ class DashboardProductRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPI
 
     def get_serializer_context(self):
         return {"request": self.request}
-    
+
+
 class DashboardCategoryListCreateView(generics.ListCreateAPIView):
     queryset = Category.objects.order_by("-id")
     serializer_class = DashboardCategorySerializer
@@ -90,7 +126,8 @@ class DashboardCategoryRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyA
 
     def get_serializer_context(self):
         return {"request": self.request}
-    
+
+
 class DashboardContactListView(generics.ListAPIView):
     queryset = Contact.objects.all().order_by("-id")
     serializer_class = DashboardContactSerializer
@@ -100,4 +137,16 @@ class DashboardContactListView(generics.ListAPIView):
 class DashboardContactDeleteView(generics.DestroyAPIView):
     queryset = Contact.objects.all()
     serializer_class = DashboardContactSerializer
+    permission_classes = [IsAdminUser]
+
+
+class DashboardOrderListView(generics.ListAPIView):
+    queryset = Order.objects.select_related("user").prefetch_related("items").order_by("-created_at")
+    serializer_class = DashboardOrderListSerializer
+    permission_classes = [IsAdminUser]
+
+
+class DashboardOrderDetailView(generics.RetrieveAPIView):
+    queryset = Order.objects.select_related("user").prefetch_related("items").order_by("-created_at")
+    serializer_class = DashboardOrderDetailSerializer
     permission_classes = [IsAdminUser]
