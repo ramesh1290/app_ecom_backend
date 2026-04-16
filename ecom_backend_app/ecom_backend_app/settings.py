@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'carts',
     'payments',
     'whychooseus',
+    'about',
     'dashboard',
 
 ]
