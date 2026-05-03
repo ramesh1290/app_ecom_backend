@@ -1,5 +1,6 @@
 # utils.py
 import random
+import traceback
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.conf import settings
 def generate_otp():
@@ -7,6 +8,7 @@ def generate_otp():
 
 
 def send_otp_email(email, otp):
+  try:
     subject = "Your Verification Code"
 
     text_content = f"Your OTP is {otp}. It expires in 10 minutes."
@@ -88,3 +90,7 @@ def send_otp_email(email, otp):
 
     email_msg.attach_alternative(html_content, "text/html")
     email_msg.send()
+  except Exception as e:
+        print(" OTP EMAIL ERROR:", str(e))
+        print(traceback.format_exc())
+        raise e
