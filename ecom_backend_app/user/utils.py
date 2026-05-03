@@ -90,6 +90,7 @@ def send_otp_email(email, otp):
 
     email_msg.attach_alternative(html_content, "text/html")
     email_msg.send()
+    
   except Exception as e:
         print(" OTP EMAIL ERROR:", str(e))
         print(traceback.format_exc())
