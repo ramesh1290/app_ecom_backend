@@ -49,6 +49,9 @@ class LoginView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# =========================
+# FORGOT PASSWORD (SEND OTP)
+# =========================
 class ForgotPasswordAPIView(APIView):
     def post(self, request):
         email = request.data.get("email")
@@ -61,15 +64,28 @@ class ForgotPasswordAPIView(APIView):
         except User.DoesNotExist:
             return Response({"message": "User with this email does not exist"}, status=404)
 
+        # remove old OTPs
         PasswordResetOTP.objects.filter(user=user).delete()
 
         otp = generate_otp()
         PasswordResetOTP.objects.create(user=user, otp=otp)
 
-        send_otp_email(user.email, otp)
+        # SAFE EMAIL SENDING (prevents 500 crash)
+        try:
+            send_otp_email(user.email, otp)
+        except Exception as e:
+            print("EMAIL ERROR:", e)
+            return Response(
+                {"message": "OTP generated but email failed. Try again."},
+                status=500
+            )
 
         return Response({"message": "OTP sent successfully"}, status=200)
 
+
+# =========================
+# VERIFY OTP
+# =========================
 class VerifyOTPAPIView(APIView):
     def post(self, request):
         email = request.data.get("email")
@@ -80,8 +96,12 @@ class VerifyOTPAPIView(APIView):
 
         try:
             user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"message": "Invalid request"}, status=400)
+
+        try:
             otp_obj = PasswordResetOTP.objects.get(user=user, otp=otp)
-        except (User.DoesNotExist, PasswordResetOTP.DoesNotExist):
+        except PasswordResetOTP.DoesNotExist:
             return Response({"message": "Invalid OTP"}, status=400)
 
         if otp_obj.is_expired():
@@ -92,7 +112,11 @@ class VerifyOTPAPIView(APIView):
         otp_obj.save()
 
         return Response({"message": "OTP verified successfully"}, status=200)
-    
+
+
+# =========================
+# RESET PASSWORD
+# =========================
 class ResetPasswordAPIView(APIView):
     def post(self, request):
         email = request.data.get("email")
@@ -103,13 +127,24 @@ class ResetPasswordAPIView(APIView):
 
         try:
             user = User.objects.get(email=email)
-            otp_obj = PasswordResetOTP.objects.filter(user=user, is_verified=True).latest("created_at")
-        except (User.DoesNotExist, PasswordResetOTP.DoesNotExist):
-            return Response({"message": "Unauthorized request"}, status=400)
 
+            # safest way (no crash if missing)
+            otp_obj = PasswordResetOTP.objects.filter(
+                user=user,
+                is_verified=True
+            ).order_by("-created_at").first()
+
+            if not otp_obj:
+                return Response({"message": "Unauthorized request"}, status=400)
+
+        except User.DoesNotExist:
+            return Response({"message": "User not found"}, status=404)
+
+        # reset password
         user.set_password(new_password)
         user.save()
 
+        # cleanup OTP
         otp_obj.delete()
 
         return Response({"message": "Password reset successful"}, status=200)
