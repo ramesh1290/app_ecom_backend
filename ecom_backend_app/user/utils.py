@@ -6,20 +6,20 @@ import resend
 def generate_otp():
     return str(random.randint(100000, 999999))
 
-
-# Set API key (use Render env variable)
+# API key
 resend.api_key = os.getenv("RESEND_API_KEY")
-
 
 def send_otp_email(email, otp):
     try:
         html_content = f"""
-        <div style="font-family:Arial, sans-serif;background:#0b1220;padding:40px;">
+        <div style="font-family:Arial,sans-serif;background:#0b1220;padding:40px;">
           <div style="max-width:520px;margin:auto;background:#111827;
                       padding:30px;border-radius:16px;
                       border:1px solid #1f2937;">
 
-            <h2 style="color:#22d3ee;text-align:center;">Security Verification</h2>
+            <h2 style="color:#22d3ee;text-align:center;">
+              Security Verification
+            </h2>
 
             <p style="color:#e5e7eb;">Your OTP is:</p>
 
@@ -38,14 +38,12 @@ def send_otp_email(email, otp):
         </div>
         """
 
-        params = {
-            "from": "Your App <onboarding@resend.dev>",
-            "to": [email],
+        resend.Emails.send({
+            "from": "onboarding@resend.dev",
+            "to": email,   #  string, NOT list
             "subject": "Your OTP Code",
             "html": html_content
-        }
-
-        resend.Emails.send(params)
+        })
 
     except Exception as e:
         print("OTP EMAIL ERROR:", str(e))
